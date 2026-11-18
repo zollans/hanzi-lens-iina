@@ -2,6 +2,8 @@
   "name": "Hanzi Lens",
   "identifier": "io.github.hanzilens",
   "version": "1.1.0",
+  "ghRepo": "zollans/hanzi-lens-iina",
+  "ghVersion": 1,
   "description": "Interactive Chinese subtitles: pinyin over each character, click any word for a dictionary entry (CC-CEDICT, Unihan, Make Me a Hanzi, HSK, Tatoeba), and an English line from the file's own English track or on-device translation.",
   "author": {
     "name": "Hanzi Lens"

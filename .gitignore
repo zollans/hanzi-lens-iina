@@ -4,3 +4,4 @@ __pycache__/
 dev/_render/
 dev/media/*.mp4
 dev/media/*.aiff
+*.iinaplgz

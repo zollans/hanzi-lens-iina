@@ -18,16 +18,21 @@ The pictures show *Sintel* (© Blender Foundation, [CC BY 3.0](https://creativec
 
 ## Install
 
+In IINA, open Settings → Plugins, choose to install from GitHub and enter:
+
+    zollans/hanzi-lens-iina
+
+IINA downloads the packaged plugin from the latest release and can check for updates later. Then open a video with a Chinese text subtitle track. Settings are in the sidebar's gear button and in Settings → Plugins → Hanzi Lens.
+
 Requires an IINA version with plugin support (developed on IINA 1.5). On-device translation uses Apple's Translation framework, which needs macOS 15 or later; without it you still get pinyin, lookup and the English track.
 
-1. Download or clone this repository.
-2. Link it into IINA's plugin folder as a development plugin:
+### For development
 
-       ln -s "$PWD" ~/Library/Application\ Support/com.colliderli.iina/plugins/hanzi-lens.iinaplugin-dev
+Clone the repository and link it into IINA's plugin folder, then quit and reopen IINA:
 
-3. Quit and reopen IINA. Open a video with a Chinese text subtitle track.
+    ln -s "$PWD" ~/Library/Application\ Support/com.colliderli.iina/plugins/hanzi-lens.iinaplugin-dev
 
-Settings are in the sidebar's gear button and in IINA → Settings → Plugins → Hanzi Lens.
+`tools/package.sh` builds the `.iinaplgz` that releases ship.
 
 ## Layout
 

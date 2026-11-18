@@ -24,7 +24,7 @@ In IINA, open Settings → Plugins, choose to install from GitHub and enter:
 
 IINA downloads the packaged plugin from the latest release and can check for updates later. Then open a video with a Chinese text subtitle track. Settings are in the sidebar's gear button and in Settings → Plugins → Hanzi Lens.
 
-Requires an IINA version with plugin support (developed on IINA 1.5). On-device translation uses Apple's Translation framework, which needs macOS 15 or later; without it you still get pinyin, lookup and the English track.
+Requires an IINA version with plugin support (developed on IINA 1.5). On-device translation uses Apple's Translation framework, which needs macOS 15 or later; without it you still get pinyin, lookup and the English track. The bundled translation helper is built for Apple silicon.
 
 ### For development
 

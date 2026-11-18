@@ -1,0 +1,33 @@
+{
+  "name": "Hanzi Lens",
+  "identifier": "io.github.hanzilens",
+  "version": "1.1.0",
+  "description": "Interactive Chinese subtitles: pinyin over each character, click any word for a dictionary entry (CC-CEDICT, Unihan, Make Me a Hanzi, HSK, Tatoeba), and an English line from the file's own English track or on-device translation.",
+  "author": {
+    "name": "Hanzi Lens"
+  },
+  "entry": "main.js",
+  "permissions": [
+    "show-osd",
+    "video-overlay",
+    "file-system"
+  ],
+  "sidebarTab": {
+    "name": "Hanzi Lens"
+  },
+  "preferencesPage": "pref.html",
+  "preferenceDefaults": {
+    "enabled": true,
+    "pinyin": true,
+    "zhuyin": false,
+    "toneColors": false,
+    "toneShapes": true,
+    "translate": true,
+    "useSecondary": true,
+    "autoSelect": true,
+    "blurTranslation": false,
+    "pauseOnLookup": true,
+    "targetLang": "",
+    "starred": "[]"
+  }
+}

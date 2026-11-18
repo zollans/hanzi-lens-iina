@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <style>
+    :root { color-scheme: light dark; }
+    body { font: 13px -apple-system, sans-serif; color: -apple-system-label; }
+    h3 { margin: 18px 0 6px; font-size: 13px; font-weight: 600; }
+    h3:first-child { margin-top: 0; }
+    .group {
+      border-radius: 8px;
+      background: rgba(0, 0, 0, 0.03);
+      box-shadow: inset 0 0 0 0.5px rgba(0, 0, 0, 0.1);
+      padding: 2px 12px;
+    }
+    @media (prefers-color-scheme: dark) {
+      .group { background: rgba(255, 255, 255, 0.04); box-shadow: inset 0 0 0 0.5px rgba(255, 255, 255, 0.08); }
+    }
+    .item { display: flex; align-items: flex-start; gap: 8px; padding: 8px 0; }
+    .item + .item { border-top: 0.5px solid -apple-system-separator; }
+    .item input[type="checkbox"] { margin: 2px 0 0; flex: none; }
+    .item label { flex: 1; }
+    .help { display: block; margin-top: 2px; font-size: 11px; color: -apple-system-secondary-label; line-height: 1.4; }
+    .item input[type="text"] { width: 110px; font: 13px -apple-system, sans-serif; }
+    .row-label { flex: 1; }
+    p.foot { margin-top: 14px; font-size: 11px; color: -apple-system-secondary-label; line-height: 1.45; }
+  </style>
+</head>
+<body>
+  <h3>Subtitles</h3>
+  <div class="group">
+    <div class="item"><input type="checkbox" id="enabled" data-pref-key="enabled"><label for="enabled">Interactive Chinese subtitles<span class="help">Hanzi Lens draws the subtitle line itself so every word can be clicked. Toggle with ⌥⌘L.</span></label></div>
+    <div class="item"><input type="checkbox" id="autoSelect" data-pref-key="autoSelect"><label for="autoSelect">Select a Chinese subtitle track automatically<span class="help">When a file opens without a subtitle track selected.</span></label></div>
+    <div class="item"><input type="checkbox" id="pinyin" data-pref-key="pinyin"><label for="pinyin">Show pinyin above characters</label></div>
+    <div class="item"><input type="checkbox" id="zhuyin" data-pref-key="zhuyin"><label for="zhuyin">Use Zhuyin (Bopomofo) instead of pinyin</label></div>
+    <div class="item"><input type="checkbox" id="toneShapes" data-pref-key="toneShapes"><label for="toneShapes">Show tone shapes in word cards<span class="help">A small pitch contour beside each syllable: level, rising, dipping, falling. Readable without relying on color.</span></label></div>
+    <div class="item"><input type="checkbox" id="toneColors" data-pref-key="toneColors"><label for="toneColors">Color syllables by tone<span class="help">1st red · 2nd green · 3rd blue · 4th purple · neutral gray. Off by default; hard to tell apart with color vision deficiency.</span></label></div>
+  </div>
+
+  <h3>Translation</h3>
+  <div class="group">
+    <div class="item"><input type="checkbox" id="translate" data-pref-key="translate"><label for="translate">Show translation under each line<span class="help">Translated on this Mac with Apple's on-device Translation; nothing is sent over the network. Toggle with ⌥⌘T.</span></label></div>
+    <div class="item"><input type="checkbox" id="useSecondary" data-pref-key="useSecondary"><label for="useSecondary">Use English subtitles as the translation when the file has them<span class="help">The English track is read alongside the Chinese one, so the translation is the show's own. On-device translation fills in any line it doesn't cover.</span></label></div>
+    <div class="item"><input type="checkbox" id="blurTranslation" data-pref-key="blurTranslation"><label for="blurTranslation">Blur the translation until you click it</label></div>
+    <div class="item"><span class="row-label">Target language<span class="help">A language code such as en, fr, de, ja. Leave empty to follow your system language.</span></span><input type="text" data-pref-key="targetLang" placeholder="Automatic"></div>
+  </div>
+
+  <h3>Playback</h3>
+  <div class="group">
+    <div class="item"><input type="checkbox" id="pauseOnLookup" data-pref-key="pauseOnLookup"><label for="pauseOnLookup">Pause while a word card is open</label></div>
+  </div>
+
+  <p class="foot">Dictionary data: CC-CEDICT (CC BY-SA 4.0), Unicode Unihan, Make Me a Hanzi and hanzi-writer-data (Arphic PL / LGPL), complete-hsk-vocabulary (MIT), jieba (MIT), CC-Canto (CC BY-SA 3.0), Tatoeba (CC BY 2.0 FR).</p>
+</body>
+</html>

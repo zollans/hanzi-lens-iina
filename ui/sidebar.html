@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Hanzi Lens</title>
+  <script src="lib/dev-mock.js"></script>
+  <link rel="stylesheet" href="sidebar.css">
+</head>
+<body>
+  <header class="bar">
+    <div class="nav">
+      <button class="nb" id="nav-back" title="Back" aria-label="Back" disabled></button>
+      <button class="nb" id="nav-fwd" title="Forward" aria-label="Forward" disabled></button>
+    </div>
+    <label class="search" id="search-wrap">
+      <span class="search-icon" id="search-icon"></span>
+      <input id="q" type="text" placeholder="Hanzi, pinyin or English" autocomplete="off" autocorrect="off" spellcheck="false" aria-label="Search dictionary">
+      <button class="search-clear" id="q-clear" aria-label="Clear search" tabindex="-1"></button>
+    </label>
+    <button class="nb" id="open-settings" title="Settings" aria-label="Settings" aria-pressed="false"></button>
+  </header>
+  <nav class="seg" id="seg" role="tablist">
+    <div class="seg-thumb" id="seg-thumb"></div>
+    <button role="tab" data-tab="dict" aria-selected="true">Dictionary</button>
+    <button role="tab" data-tab="lines" aria-selected="false">Transcript</button>
+    <button role="tab" data-tab="starred" aria-selected="false">Starred</button>
+  </nav>
+  <main id="panes">
+    <section class="pane" id="pane-dict" data-tab="dict"></section>
+    <section class="pane" id="pane-lines" data-tab="lines" hidden></section>
+    <section class="pane" id="pane-starred" data-tab="starred" hidden></section>
+    <section class="pane" id="pane-settings" data-tab="settings" hidden></section>
+  </main>
+  <script src="data/words.js"></script>
+  <script src="data/chars.js"></script>
+  <script src="lib/dict.js"></script>
+  <script src="lib/common.js"></script>
+  <script src="lib/strokes.js"></script>
+  <script src="sidebar.js"></script>
+  <script src="data/examples.js" async></script>
+</body>
+</html>

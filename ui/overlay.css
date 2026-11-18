@@ -1,0 +1,508 @@
+/* Hanzi Lens — video overlay.
+ * Everything here sits on top of video, so it always uses the dark HUD palette regardless of
+ * system appearance, matching IINA's own OSD and macOS HUD popovers. */
+
+:root {
+  color-scheme: dark;
+  /* Apple system colors, dark appearance */
+  --label: rgba(255, 255, 255, 0.92);
+  --label-2: rgba(235, 235, 245, 0.62);
+  --label-3: rgba(235, 235, 245, 0.36);
+  --separator: rgba(255, 255, 255, 0.1);
+  --fill: rgba(255, 255, 255, 0.08);
+  --fill-hover: rgba(255, 255, 255, 0.12);
+  --fill-press: rgba(255, 255, 255, 0.18);
+  --accent: #0a84ff;
+  --hud-bg: rgba(36, 36, 38, 0.86);
+  --hud-top: rgba(255, 255, 255, 0.045);
+
+  /* Tone colors: Pleco's convention, rendered with Apple's dark-mode system hues */
+  --t1: #ff6b6b; /* red */
+  --t2: #5fd47b; /* green */
+  --t3: #64a8ff; /* blue */
+  --t4: #c58af9; /* purple */
+  --t5: #a1a1a6; /* neutral */
+
+  /* Subtitle metrics: set from mpv's sub-* properties by overlay.js */
+  --sub-size: 40px;
+  --sub-margin: 30px;
+  --sub-border: 3px;
+  --sub-color: #fff;
+  --sub-border-color: #000;
+  --sub-font: "PingFang SC";
+  --sub-shadow: none;
+  --sub-box: transparent;
+  --sub-spacing: 0px;
+  --sub-blur: none;
+}
+@supports (color: -apple-system-control-accent) {
+  :root { --accent: -apple-system-control-accent; }
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+  background: transparent;
+  -webkit-user-select: none;
+  user-select: none;
+  cursor: default;
+  font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", sans-serif;
+  -webkit-font-smoothing: antialiased;
+  font-kerning: normal;
+}
+
+#stage { position: fixed; inset: 0; pointer-events: none; }
+
+/* ---------------------------------------------------------------- subtitle */
+
+/* The translation hangs below the Chinese line in reserved space, so the Chinese never moves
+   when a translation arrives late (on-device translation takes a moment). */
+:root { --tr-size: calc(var(--sub-size) * 0.56); --tr-reserve: calc(var(--tr-size) * 1.55); }
+body.no-tr { --tr-reserve: 0px; }
+#sub {
+  /* top/bottom/left/transform are set by overlay.js from mpv's alignment, margins and sub-pos */
+  position: absolute;
+  left: 50%;
+  bottom: calc(30px + var(--tr-reserve));
+  transform: translateX(-50%);
+  width: max-content;
+  max-width: 92vw;
+  text-align: center;
+  pointer-events: auto;
+}
+#sub[hidden], body.off #sub { display: none; }
+/* Rising above / settling below IINA's control bar, timed like its fade. */
+#sub.dodging { transition: bottom 260ms cubic-bezier(0.25, 0.1, 0.25, 1); }
+#sub.shifting { transition: left 260ms cubic-bezier(0.25, 0.1, 0.25, 1); }
+
+.zh {
+  font-family: var(--sub-font), "PingFang SC", "Heiti SC", sans-serif;
+  font-size: var(--sub-size);
+  font-weight: 500;
+  line-height: 1.22;
+  color: var(--sub-color);
+  white-space: pre-wrap;
+  letter-spacing: calc(0.02em + var(--sub-spacing));
+  filter: var(--sub-blur);
+}
+#sub.italic .zh, #sub.italic .tr { font-style: italic; }
+#sub.boxed .zh .line { background: var(--sub-box); box-decoration-break: clone; -webkit-box-decoration-break: clone; padding: 0 var(--sub-border); border-radius: 2px; }
+#sub.boxed .tr { background: var(--sub-box); padding-left: var(--sub-border); padding-right: var(--sub-border); }
+.zh:lang(zh-Hant) { font-family: var(--sub-font), "PingFang TC", "Heiti TC", sans-serif; }
+.zh.bold { font-weight: 600; }
+
+/* Outline drawn under the fill, the same way libass draws mpv's border. */
+.zh, .tr, .zh rt {
+  -webkit-text-stroke: calc(var(--sub-border) * 2) var(--sub-border-color);
+  paint-order: stroke fill;
+  /* A soft, wide halo under the outline keeps thin strokes legible on bright, pastel frames,
+     then the user's own mpv shadow (if any). overlay.js builds the list. */
+  text-shadow: var(--sub-shadow);
+}
+
+.zh.ruby { line-height: 1.12; }
+.zh .line { display: block; }
+
+.w {
+  display: inline-block;
+  position: relative;
+  border-radius: 0.2em;
+  padding: 0 0.04em;
+  margin: 0 -0.04em;
+  cursor: pointer;
+  transition: background-color 120ms cubic-bezier(0.25, 0.1, 0.25, 1);
+}
+.w.plain { cursor: default; }
+.w::before {
+  /* hover/selection plate; sits behind the outlined glyphs */
+  content: "";
+  position: absolute;
+  inset: 0.04em -0.06em 0.02em;
+  border-radius: 0.2em;
+  background: transparent;
+  z-index: -1;
+  transition: background-color 120ms cubic-bezier(0.25, 0.1, 0.25, 1), box-shadow 120ms;
+}
+.zh.ruby .w::before {
+  top: calc(var(--plate-top, -0.6em) - 0.04em);
+  bottom: 0.02em;
+  left: calc(-0.06em - var(--plate-x, 0px));
+  right: calc(-0.06em - var(--plate-x, 0px));
+  border-radius: 0.24em;
+}
+#sub .w:not(.plain):hover::before { background: rgba(255, 255, 255, 0.2); }
+#sub .w.sel::before,
+#sub .w.sel:hover::before {
+  background: color-mix(in srgb, var(--accent) 72%, transparent);
+  box-shadow: 0 0 0 0.5px rgba(255, 255, 255, 0.18) inset;
+}
+.zh .w { z-index: 0; }
+
+ruby { ruby-position: over; -webkit-ruby-position: before; }
+.zh rt {
+  font-family: -apple-system, "SF Pro Text", sans-serif;
+  font-size: 0.4em;
+  font-weight: 600;
+  font-stretch: 92%;     /* narrower long syllables (zhuang, shang) so they don't push characters apart */
+  letter-spacing: 0;
+  line-height: 1.15;
+  padding: 0 0.06em 0.14em;
+  color: color-mix(in srgb, var(--sub-color) 94%, #ffe9c7);
+  -webkit-text-stroke-width: calc(var(--sub-border) * 1.25);
+}
+body.tones .zh rt.t1 { color: var(--t1); }
+body.tones .zh rt.t2 { color: var(--t2); }
+body.tones .zh rt.t3 { color: var(--t3); }
+body.tones .zh rt.t4 { color: var(--t4); }
+body.tones .zh rt.t5,
+body.tones .zh rt.t0 { color: #d4d4d8; }
+body.zhuyin .zh rt { font-family: "PingFang TC", sans-serif; font-weight: 500; letter-spacing: 0; }
+
+.tr {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  width: max-content;
+  max-width: 92vw;
+  padding-top: 0.18em;
+  font-family: -apple-system, "SF Pro Text", "PingFang SC", sans-serif;
+  font-size: var(--tr-size);
+  font-weight: 500;
+  line-height: 1.25;
+  color: color-mix(in srgb, var(--sub-color) 92%, transparent);
+  letter-spacing: 0.005em;
+  white-space: pre-wrap;
+  -webkit-text-stroke-width: calc(var(--sub-border) * 1.6);
+  min-height: 0;
+  /* No opacity fade: a fading element is drawn through a compositing layer, which softens the text
+     for the length of the fade. Real subtitles cut in. */
+  opacity: 0;
+  transition: filter 200ms cubic-bezier(0.25, 0.1, 0.25, 1);
+}
+.tr.shown { opacity: 1; }
+.tr:empty, body.no-tr .tr { display: none; }
+body.blur-tr .tr.shown:not(.revealed) { filter: blur(0.32em); cursor: pointer; }
+
+/* ---------------------------------------------------------------- card (HUD popover) */
+
+.card {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 336px;
+  pointer-events: auto;
+  color: var(--label);
+  font-size: 13px;
+  line-height: 1.38;
+  will-change: transform, opacity;
+  z-index: 10;
+  /* positioned with transform by overlay.js */
+}
+.card[hidden] { display: none; }
+
+.card-clip {
+  position: relative;
+  border-radius: 12px;
+  background:
+    linear-gradient(180deg, var(--hud-top), rgba(255, 255, 255, 0) 64px),
+    var(--hud-bg);
+  -webkit-backdrop-filter: blur(30px) saturate(1.8);
+  backdrop-filter: blur(30px) saturate(1.8);
+  box-shadow:
+    0 0 0 0.5px rgba(0, 0, 0, 0.7),
+    inset 0 0 0 0.5px rgba(255, 255, 255, 0.14),
+    0 12px 36px rgba(0, 0, 0, 0.42),
+    0 2px 8px rgba(0, 0, 0, 0.22);
+  overflow: hidden;
+}
+.card-body { padding: 13px 14px 10px 16px; }
+.card-clip { overflow-y: auto; overscroll-behavior: contain; }
+.card-clip::-webkit-scrollbar { width: 0; }
+/* Compact layout for small windows */
+.card.compact .hw { font-size: 24px; }
+.card.compact .defs li:nth-child(n+4),
+.card.compact .reading,
+.card.compact .more-readings,
+.card.compact .more-defs,
+.card.compact .cls,
+.card.compact .chars,
+.card.compact .ft .hint { display: none; }
+.card.tiny .defs li:nth-child(n+2) { display: none; }
+.card.tiny .hw { font-size: 21px; }
+.card.tiny .card-body { padding-top: 10px; }
+.card.compact .ft { margin-top: 8px; padding-top: 6px; justify-content: flex-end; }
+
+.card-arrow {
+  position: absolute;
+  width: 18px;
+  height: 9px;
+  left: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+.card-arrow::before {
+  content: "";
+  position: absolute;
+  width: 12.5px;
+  height: 12.5px;
+  left: 2.75px;
+  background: var(--hud-bg);
+  transform: rotate(45deg);
+  box-shadow: 0 0 0 0.5px rgba(0, 0, 0, 0.7), inset 0 0 0 0.5px rgba(255, 255, 255, 0.14);
+  border-radius: 2px;
+}
+.card.below .card-arrow { top: -9px; }
+.card.below .card-arrow::before { top: 4.5px; background: color-mix(in srgb, var(--hud-bg), rgba(255,255,255,0.045)); }
+.card.above .card-arrow { bottom: -9px; }
+.card.above .card-arrow::before { top: -7px; }
+
+/* header */
+.hd { display: flex; align-items: flex-start; gap: 8px; }
+.hd-main { flex: 1; min-width: 0; }
+.hw {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
+  font-family: "PingFang SC", sans-serif;
+  font-size: 30px;
+  font-weight: 500;
+  line-height: 1.15;
+  letter-spacing: 0.02em;
+  color: #fff;
+}
+.hw:lang(zh-Hant) { font-family: "PingFang TC", sans-serif; }
+.hw .alt { font-size: 19px; font-weight: 400; color: var(--label-2); letter-spacing: 0.01em; }
+.hw .alt::before { content: "("; } .hw .alt::after { content: ")"; }
+
+.pyline {
+  margin-top: 3px;
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 4px 8px;
+  font-size: 15px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+}
+.py .t1 { color: var(--t1); } .py .t2 { color: var(--t2); }
+.py .t3 { color: var(--t3); } .py .t4 { color: var(--t4); }
+.py .t5, .py .t0 { color: var(--t5); }
+.py.nocolor span { color: inherit !important; }
+
+/* Tone shapes: a pitch contour in a small frame after each syllable (high at the top, low at the
+   bottom), so tones read by shape rather than color. */
+.py .tshape {
+  display: inline-block;
+  width: 1.02em;
+  height: 0.83em;
+  margin-left: 0.22em;
+  vertical-align: -0.04em;
+}
+.py .tshape .frame { fill: currentColor; fill-opacity: 0.1; stroke: none; }
+.py .tshape .contour {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  opacity: 0.9;
+}
+.py .tshape circle.contour { fill: currentColor; stroke: none; }
+.zy { font-family: "PingFang TC", sans-serif; font-size: 13px; color: var(--label-2); }
+.jy { font-size: 12px; color: var(--label-3); font-weight: 500; }
+
+.badges { display: inline-flex; gap: 4px; align-self: center; transform: translateY(-1px); }
+.badge {
+  display: inline-block;
+  height: 17px;
+  padding: 0 6px;
+  border-radius: 5px;
+  font-size: 10.5px;
+  font-weight: 600;
+  line-height: 17px;
+  letter-spacing: 0.02em;
+  font-variant-numeric: tabular-nums;
+  color: var(--label-2);
+  background: var(--fill);
+  box-shadow: inset 0 0 0 0.5px rgba(255, 255, 255, 0.06);
+  white-space: nowrap;
+}
+.badge.hsk { color: rgba(255, 255, 255, 0.86); }
+
+/* icon buttons */
+.tools { display: flex; gap: 2px; margin: -3px -5px 0 0; }
+.ib {
+  width: 26px;
+  height: 26px;
+  border: 0;
+  padding: 4px;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--label-2);
+  display: grid;
+  place-items: center;
+  cursor: default;
+  transition: background-color 120ms cubic-bezier(0.25, 0.1, 0.25, 1), color 120ms;
+}
+.ib svg { width: 17px; height: 17px; display: block; pointer-events: none; }
+.ib:hover { background: var(--fill-hover); color: var(--label); }
+.ib:active { background: var(--fill-press); }
+.ib.on { color: #ffd60a; }
+.ib.speaking { color: var(--accent); }
+
+/* definitions */
+.defs { margin: 8px 0 0; padding: 0; list-style: none; counter-reset: d; }
+.defs li {
+  position: relative;
+  padding-left: 19px;
+  margin: 0 0 2px;
+  counter-increment: d;
+  color: var(--label);
+  overflow-wrap: anywhere;
+}
+.defs li::before {
+  content: counter(d);
+  position: absolute;
+  left: 0;
+  width: 13px;
+  text-align: right;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 18px;
+  font-variant-numeric: tabular-nums;
+  color: var(--label-3);
+}
+.defs.single li { padding-left: 0; }
+.defs.single li::before { display: none; }
+.def .ref {
+  font-family: "PingFang SC", sans-serif;
+  color: #fff;
+  border-radius: 3px;
+  cursor: pointer;
+  text-decoration: underline;
+  text-decoration-color: rgba(255, 255, 255, 0.28);
+  text-underline-offset: 2px;
+}
+.def .ref:hover { text-decoration-color: rgba(255, 255, 255, 0.7); }
+.def .refpy { font-size: 12px; }
+
+.more-defs { margin: 1px 0 0 19px; font-size: 11.5px; color: var(--label-3); }
+.cls {
+  margin-top: 6px;
+  font-size: 12px;
+  color: var(--label-2);
+}
+.cls b { font-weight: 500; color: var(--label-3); margin-right: 4px; }
+.cls .c { font-family: "PingFang SC", sans-serif; color: var(--label); font-size: 13px; cursor: pointer; }
+.cls .c + .py { margin-left: 3px; }
+.cls .sep { color: var(--label-3); margin: 0 4px; }
+
+/* other readings */
+.reading {
+  margin-top: 9px;
+  padding-top: 8px;
+  border-top: 0.5px solid var(--separator);
+}
+.reading .pyline { margin-top: 0; font-size: 14px; }
+.reading .defs { margin-top: 4px; }
+.more-readings {
+  margin-top: 6px;
+  font-size: 12px;
+  color: var(--label-2);
+}
+
+/* characters strip */
+.chars {
+  display: flex;
+  gap: 6px;
+  margin: 10px -2px 0;
+  flex-wrap: wrap;
+}
+.chip {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 5px;
+  height: 26px;
+  padding: 0 8px 0 7px;
+  border-radius: 7px;
+  background: var(--fill);
+  box-shadow: inset 0 0 0 0.5px rgba(255, 255, 255, 0.06);
+  line-height: 26px;
+  cursor: pointer;
+  transition: background-color 120ms cubic-bezier(0.25, 0.1, 0.25, 1);
+}
+.chip:hover { background: var(--fill-hover); }
+.chip:active { background: var(--fill-press); }
+.chip .ch { font-family: "PingFang SC", sans-serif; font-size: 16px; color: #fff; }
+.chip .py { font-size: 11.5px; font-weight: 500; }
+.chip .gl { font-size: 11.5px; color: var(--label-2); max-width: 92px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* footer */
+.ft {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 11px -8px -4px -10px;
+  padding: 7px 4px 0 10px;
+  border-top: 0.5px solid var(--separator);
+  font-size: 11.5px;
+  color: var(--label-3);
+}
+.ft .hint { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.kbd {
+  display: inline-block;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 3px;
+  border-radius: 4px;
+  font-size: 10.5px;
+  font-weight: 600;
+  line-height: 16px;
+  text-align: center;
+  color: var(--label-2);
+  background: var(--fill);
+  box-shadow: inset 0 0 0 0.5px rgba(255, 255, 255, 0.08);
+  margin: 0 1px;
+}
+.btn {
+  height: 22px;
+  padding: 0 9px;
+  border: 0;
+  border-radius: 6px;
+  font: 500 12px -apple-system, sans-serif;
+  color: var(--label);
+  background: var(--fill-hover);
+  box-shadow: inset 0 0 0 0.5px rgba(255, 255, 255, 0.08), 0 0.5px 1px rgba(0, 0, 0, 0.25);
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  cursor: default;
+  transition: background-color 120ms cubic-bezier(0.25, 0.1, 0.25, 1);
+}
+.btn svg { width: 14px; height: 14px; pointer-events: none; }
+.btn:hover { background: rgba(255, 255, 255, 0.16); }
+.btn:active { background: rgba(255, 255, 255, 0.22); }
+
+.back {
+  display: inline-flex;
+  align-items: center;
+  gap: 1px;
+  margin: -4px 0 4px -6px;
+  height: 20px;
+  padding: 0 6px 0 2px;
+  border-radius: 5px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--label-2);
+  cursor: pointer;
+  transition: background-color 120ms, color 120ms;
+}
+.back svg { width: 14px; height: 14px; pointer-events: none; }
+.back:hover { background: var(--fill-hover); color: var(--label); }
+
+.empty { color: var(--label-2); padding: 2px 0; }
+.empty .hw { margin-bottom: 4px; }

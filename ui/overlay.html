@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="zh-Hans">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Hanzi Lens Overlay</title>
+  <script src="lib/dev-mock.js"></script>
+  <link rel="stylesheet" href="overlay.css">
+</head>
+<body>
+  <div id="stage">
+    <div id="sub" aria-live="polite">
+      <div id="zh" class="zh"></div>
+      <div id="tr" class="tr"></div>
+    </div>
+    <div id="card" class="card" role="dialog" aria-modal="false" hidden>
+      <div class="card-clip">
+        <div class="card-body" id="card-body"></div>
+      </div>
+      <div class="card-arrow" id="card-arrow"></div>
+    </div>
+  </div>
+  <script src="data/words.js"></script>
+  <script src="data/chars.js"></script>
+  <script src="lib/dict.js"></script>
+  <script src="lib/common.js"></script>
+  <script src="overlay.js"></script>
+</body>
+</html>

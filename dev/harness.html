@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Hanzi Lens Harness</title>
+<style>
+  :root { color-scheme: light dark; }
+  html, body { margin: 0; height: 100%; background: #111; font: 12px -apple-system, sans-serif; color: #ccc; }
+  #win { position: absolute; inset: 0 0 34px 0; display: flex; }
+  #video-area { position: relative; flex: 1; background: #000; overflow: hidden; }
+  video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; }
+  #ov { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; background: transparent; }
+  #sb-wrap { width: 360px; position: relative; background: rgba(40, 40, 42, 0.92); box-shadow: -0.5px 0 0 rgba(255,255,255,.1); display: none; }
+  #sb-wrap.on { display: block; }
+  @media (prefers-color-scheme: light) { #sb-wrap { background: rgba(236, 236, 238, 0.96); box-shadow: -0.5px 0 0 rgba(0,0,0,.12); } }
+  #sb { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; background: transparent; }
+  #ctl { position: absolute; left: 0; right: 0; bottom: 0; height: 34px; display: flex; gap: 8px; align-items: center; padding: 0 10px; background: #1c1c1e; }
+  #ctl button { font: inherit; }
+</style>
+</head>
+<body>
+<div id="win">
+  <div id="video-area">
+    <video id="v" playsinline></video>
+    <iframe id="ov" src="../ui/overlay.html"></iframe>
+  </div>
+  <div id="sb-wrap"><iframe id="sb" src="../ui/sidebar.html"></iframe></div>
+</div>
+<div id="ctl">
+  <button id="play">Play/Pause</button>
+  <button id="toggle-sb">Sidebar</button>
+  <span id="t"></span>
+  <span id="log" style="margin-left:auto;opacity:.7"></span>
+</div>
+<script>
+// ?media=<folder> picks the sample folder (default dev/media/): demo.mp4, demo.srt, translations.json, still.png
+// ?still swaps the video for an image and a hand-driven clock; ?src=track marks the second line as coming from a subtitle track
+const Q = new URLSearchParams(location.search);
+const MEDIA = (Q.get("media") || "media").replace(/\/?$/, "/");
+const TR_SOURCE = Q.get("src") || "apple";
+const STILL = Q.has("still");
+let v = document.getElementById("v");
+v.src = MEDIA + "demo.mp4";
+let img = null;
+if (STILL) {
+  // Snapshot mode: a still frame and a manually driven clock (WebKit snapshots omit video layers).
+  img = document.createElement("img");
+  img.src = MEDIA + (Q.get("bg") || "still.png");
+  img.style.cssText = "position:absolute;inset:0;width:100%;height:100%;object-fit:contain";
+  v.replaceWith(img);
+  v = { currentTime: 0, paused: true, pause() { this.paused = true; }, play() { this.paused = false; } };
+}
+if (new URLSearchParams(location.search).has("sidebar")) document.getElementById("sb-wrap").classList.add("on");
+if (new URLSearchParams(location.search).has("noctl")) { document.getElementById("ctl").style.display = "none"; document.getElementById("win").style.bottom = "0"; }
+const ov = document.getElementById("ov");
+const sb = document.getElementById("sb");
+const enc = (o) => JSON.stringify(encodeURIComponent(JSON.stringify(o)));
+const send = (frame, name, data) => frame.contentWindow.iina && frame.contentWindow.iina._emit(name, enc(data));
+const toOv = (n, d) => send(ov, n, d);
+const toSb = (n, d) => send(sb, n, d);
+
+let lines = [], tr = {};
+let settings = { enabled: true, pinyin: true, zhuyin: false, toneColors: false, toneShapes: true, translate: true, blurTranslation: false, pauseOnLookup: true };
+let starred = [];
+const style = { fontSize: 55, scale: 1, border: 3, marginY: 22, color: "#FFFFFFFF", borderColor: "#FF000000", font: "", bold: false, pos: 100 };
+
+function parseSrt(text) {
+  const tm = (s) => { const m = /(\d+):(\d+):(\d+),(\d+)/.exec(s); return +m[1] * 3600 + +m[2] * 60 + +m[3] + +m[4] / 1000; };
+  return text.trim().split(/\n\n+/).map((b) => { const p = b.split("\n"); const [a, c] = p[1].split(" --> "); return { start: tm(a), end: tm(c), text: p.slice(2).join("\n") }; });
+}
+Promise.all([fetch(MEDIA + "demo.srt").then((r) => r.text()), fetch(MEDIA + "translations.json").then((r) => r.json())]).then(([s, t]) => {
+  lines = parseSrt(s); tr = t;
+  lines.forEach((l) => (l.tr = tr[l.text]));
+  maybeInitSb();
+});
+
+let cur = null, seq = 0, pausedByUs = false, cardOpen = false;
+function update() {
+  const t = v.currentTime;
+  document.getElementById("t").textContent = t.toFixed(2);
+  const l = lines.find((x) => t >= x.start && t < x.end) || null;
+  if ((l && l.text) !== (cur && cur.text)) {
+    cur = l;
+    toOv("sub", { id: ++seq, text: l ? l.text : "", start: l && l.start, end: l && l.end });
+    if (l) {
+      const id = seq;
+      toSb("current", { start: l.start, text: l.text });
+      setTimeout(() => toOv("translation", { id, text: l.text, translation: tr[l.text] || "", source: TR_SOURCE }), window.trDelay || 0);
+    }
+  }
+}
+function tick() { update(); STILL ? setTimeout(tick, 30) : requestAnimationFrame(tick); }
+STILL ? setTimeout(tick, 30) : requestAnimationFrame(tick);
+
+let ovReady = false, sbReady = false;
+function maybeInitSb() {
+  if (!sbReady || !lines.length) return;
+  toSb("settings", settings);
+  toSb("starred", { items: starred });
+  toSb("transcript", { lines, fromFile: true });
+}
+window.addEventListener("message", (e) => {
+  const m = e.data;
+  if (!m || !m.hl) return;
+  document.getElementById("log").textContent = m.page + " → " + m.name + " " + JSON.stringify(m.data).slice(0, 80);
+  const fromOv = e.source === ov.contentWindow;
+  if (fromOv) {
+    if (m.name === "ready") { ovReady = true; toOv("settings", settings); toOv("style", style); toOv("visible", { visible: true }); toOv("starred", { keys: starred.map((x) => x.simp + "|" + x.pinyin) }); cur = null; }
+    if (m.name === "card") {
+      if (m.data.open && !cardOpen && !v.paused) { v.pause(); pausedByUs = true; }
+      if (!m.data.open && cardOpen && pausedByUs) { pausedByUs = false; v.play(); }
+      cardOpen = m.data.open;
+    }
+    if (m.name === "openSidebar") { document.getElementById("sb-wrap").classList.add("on"); toSb("lookup", m.data); }
+  } else {
+    if (m.name === "ready") { sbReady = true; maybeInitSb(); }
+    if (m.name === "seek") { v.currentTime = m.data.time + 0.01; }
+  }
+  if (m.name === "star") {
+    const d = m.data; const i = starred.findIndex((x) => x.simp === d.simp && x.pinyin === d.pinyin);
+    if (i >= 0) starred.splice(i, 1); else starred.unshift(d);
+    toSb("starred", { items: starred });
+    toOv("starred", { keys: starred.map((x) => x.simp + "|" + x.pinyin) });
+  }
+});
+document.getElementById("play").onclick = () => (v.paused ? v.play() : v.pause());
+document.getElementById("toggle-sb").onclick = () => document.getElementById("sb-wrap").classList.toggle("on");
+// Keyboard forwarding like main.js does while a card is open
+window.addEventListener("keydown", (e) => {
+  const map = { ArrowLeft: "left", ArrowRight: "right", ArrowUp: "up", ArrowDown: "down", Escape: "escape", Enter: "enter", s: "star", p: "speak" };
+  if (cardOpen && map[e.key]) { e.preventDefault(); toOv("key", { key: map[e.key] }); }
+  else if (e.key === " ") { e.preventDefault(); v.paused ? v.play() : v.pause(); }
+});
+window.H = { v, img, update, toOv, toSb, ov, sb, settings, style };
+</script>
+</body>
+</html>

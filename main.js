@@ -311,7 +311,9 @@ function onSubText() {
   if (state.line && state.line.text === text && Math.abs((state.line.start || 0) - start) < 0.01) return;
   const id = ++state.seq;
   state.line = { id, text, start, end };
-  toOverlay("sub", { id, text, start, end });
+  // Send the English with the line when it's already known, so the overlay lays both out at once
+  // instead of drawing the Chinese and then moving it when a wrapping English line follows.
+  toOverlay("sub", { id, text, start, end, translation: readyTranslation(text) });
   recordLine(text, start, end);
   provideTranslation(id, text);
 }
@@ -346,6 +348,13 @@ function deliverTranslation(id, text, tr, source) {
   if (source === "track") (state.trackTr || (state.trackTr = new Map())).set(text, tr);
   toOverlay("translation", { id, text, translation: tr, source });
   toSidebar("translation", { text, translation: tr });
+}
+
+/** The translation for the current line if it is available right now (English track cue, or cached). */
+function readyTranslation(text) {
+  if (!hasChinese(text) || !pref("translate")) return "";
+  if (pref("useSecondary") && hasSecondary()) return secondaryFor(state.line) || (state.trackTr && state.trackTr.get(text)) || "";
+  return state.cache.get(text) || "";
 }
 
 function provideTranslation(id, text) {

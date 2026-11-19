@@ -81,7 +81,8 @@ function update() {
   const l = lines.find((x) => t >= x.start && t < x.end) || null;
   if ((l && l.text) !== (cur && cur.text)) {
     cur = l;
-    toOv("sub", { id: ++seq, text: l ? l.text : "", start: l && l.start, end: l && l.end });
+    // like main.js: the English rides along with the line when it's already known (window.trDelay = 0)
+    toOv("sub", { id: ++seq, text: l ? l.text : "", start: l && l.start, end: l && l.end, translation: l && !window.trDelay ? tr[l.text] || "" : "" });
     if (l) {
       const id = seq;
       toSb("current", { start: l.start, text: l.text });

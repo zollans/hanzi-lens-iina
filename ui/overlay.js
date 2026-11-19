@@ -196,10 +196,16 @@
     S.line = line;
     S.tokens = [];
     $zh.textContent = "";
-    $tr.textContent = "";
-    $tr.classList.remove("shown");
+    $tr.classList.remove("revealed");
+    $tr.textContent = (line && line.text && line.translation) || "";
+    $tr.classList.toggle("shown", !!$tr.textContent);
+    UI.clickable($tr);
+    if (!line || !line.text) { $sub.hidden = true; S.blankSince = S.blankSince || Date.now(); publishHitmap(); return; }
+    // The lift for a wrapping English line holds through a stretch of dialogue, so the next line doesn't
+    // drop and pop back up; it resets only after the screen has been empty for a while.
+    if (S.blankSince && Date.now() - S.blankSince > 1500) document.documentElement.style.setProperty("--tr-extra", "0px");
+    S.blankSince = 0;
     fitTranslation();
-    if (!line || !line.text) { $sub.hidden = true; publishHitmap(); return; }
     $sub.hidden = false;
     const lang = HL.scriptOf(line.text);
     $zh.lang = lang;
@@ -269,20 +275,30 @@
 
   /** A translation that still wraps (long or two-speaker lines) lifts the Chinese line by the extra
    *  height, so it never runs into IINA's controls or off the bottom of the window. */
-  function fitTranslation() {
+  function fitTranslation(late) {
     const reserve = parseFloat(getComputedStyle($tr).fontSize) * 1.55 || 0;
     const extra = $tr.textContent ? Math.max(0, $tr.offsetHeight - reserve) : 0;
-    document.documentElement.style.setProperty("--tr-extra", extra.toFixed(1) + "px");
+    const held = parseFloat(document.documentElement.style.getPropertyValue("--tr-extra")) || 0;
+    let lift = Math.max(held, extra);
+    if (late && extra > held) {
+      // The line is already on screen: rather than move it, let the extra English hang into the margin
+      // below, as long as it stays inside the window and clear of IINA's control bar.
+      const r = $tr.getBoundingClientRect();
+      const o = S.oscShown ? oscRect() : null;
+      const hitsBar = o && r.bottom > o.t && r.top < o.b && r.right > o.l && r.left < o.r;
+      if (r.bottom <= window.innerHeight - 4 && !hitsBar) lift = held;
+    }
+    document.documentElement.style.setProperty("--tr-extra", lift.toFixed(1) + "px");
     if (S.osc && S.osc.pos === 0 && S.oscShown && !S.open) applyStyle();   // line width changed: re-check the bar
     snapLine();
   }
   function showTranslation(text) {
+    if ((text || "") === $tr.textContent && (!text || $tr.classList.contains("shown"))) return;   // already shown with the line
     $tr.classList.remove("revealed");
     $tr.textContent = text || "";
     UI.clickable($tr);
     if (!text) { $tr.classList.remove("shown"); return; }
-    // Fade in only when it arrives late; when it's already known with the line, show at once like a real subtitle.
-    fitTranslation();
+    fitTranslation(true);
     $tr.classList.add("shown");
     publishHitmap();
   }

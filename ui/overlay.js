@@ -193,6 +193,8 @@
 
   // ------------------------------------------------------------------ subtitle rendering
   function renderLine(line) {
+    // A new line is placed where it belongs at once; never glide from where the previous line was.
+    $sub.classList.remove("shifting", "dodging");
     S.line = line;
     S.tokens = [];
     $zh.textContent = "";
@@ -769,11 +771,17 @@
     }
     publishHitmap();
   });
+  // The line glides sideways only when a sidebar opens or closes; an unchanged inset changes nothing.
+  // (A repeated inset used to switch the glide on, and a new line arriving in that moment slid across
+  // from the previous line's position.)
+  let shiftTimer = 0;
   UI.onMessage("inset", (d) => {
+    if (JSON.stringify(d) === JSON.stringify(S.inset || null)) return;
     S.inset = d;
     $sub.classList.add("shifting");
     applyStyle(); fitPlates(); if (S.open) placeCard(false);
-    setTimeout(() => { $sub.classList.remove("shifting"); publishHitmap(); }, 300);
+    clearTimeout(shiftTimer);
+    shiftTimer = setTimeout(() => { $sub.classList.remove("shifting"); publishHitmap(); }, 300);
   });
   UI.onMessage("osc", (o) => { S.osc = o; applyStyle(); fitPlates(); if (S.open) placeCard(false); publishHitmap(); });
   UI.onMessage("style", (st) => { S.style = st; applyStyle(); fitPlates(); if (S.open) placeCard(false); publishHitmap(); });

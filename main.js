@@ -266,6 +266,7 @@ function pushInset() {
   const key = JSON.stringify(inset);
   if (key === state.insetKey) return;
   state.insetKey = key;
+  dlog("inset " + key);
   toOverlay("inset", inset);
 }
 function refreshOSC() {
@@ -283,7 +284,7 @@ function refreshOSC() {
       const changed = JSON.stringify(info) !== JSON.stringify(oscInfo);
       oscInfo = info;
       if (changed) toOverlay("osc", info);
-      state.insetKey = ""; pushInset();
+      pushInset();   // sends only when the sidebar's side or width actually changed
     });
 }
 let oscRefreshAt = 0;
@@ -537,6 +538,7 @@ function bindOverlay() {
     toOverlay("settings", settings());
     toOverlay("style", subStyle());
     if (oscInfo) toOverlay("osc", oscInfo);
+    state.insetKey = ""; pushInset();   // a (re)loaded overlay needs the current inset once
     toOverlay("starred", { keys: starred().map((x) => x.simp + "|" + x.pinyin) });
     applyTakeover();
     while (pendingOverlay.length) { const [n, d] = pendingOverlay.shift(); toOverlay(n, d); }

@@ -37,7 +37,7 @@ dlog("main.js loaded, root=" + ROOT);
 
 // ---------------------------------------------------------------------------- preferences
 const DEFAULTS = {
-  enabled: true, pinyin: true, zhuyin: false, toneColors: false, toneShapes: true, translate: true,
+  enabled: true, pinyin: true, zhuyin: false, jyutping: false, toneColors: false, toneShapes: true, translate: true,
   useSecondary: true, autoSelect: true, pauseOnLookup: true, blurTranslation: false, targetLang: "",
 };
 function pref(k) {

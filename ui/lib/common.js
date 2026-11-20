@@ -70,7 +70,24 @@
   }
 
   function sylText(s, zhuyin) {
-    return zhuyin && s.tone ? HL.syllableToZhuyin(s.raw) : s.text;
+    return zhuyin && s.tone && !s.jyut ? HL.syllableToZhuyin(s.raw) : s.text;
+  }
+
+  /** Tone class for a syllable: t1–t5 for Mandarin (t5 neutral), j1–j6 for Cantonese. */
+  function toneClass(s) {
+    return (s.jyut ? "j" : "t") + (s.tone || 0);
+  }
+
+  /** Jyutping (numbered) -> fragment of tone-classed spans. */
+  function jyutNode(numeric, opts) {
+    opts = opts || {};
+    const frag = h("span", { class: "py jy" + (opts.colors === false ? " nocolor" : "") });
+    const syls = HL.jyutSyllables(numeric);
+    syls.forEach((s, i) => {
+      frag.appendChild(h("span", { class: toneClass(s) }, s.text));
+      if (i < syls.length - 1) frag.appendChild(document.createTextNode(" "));
+    });
+    return frag;
   }
 
   /** Clean CC-CEDICT definition text and split out measure words ("CL:个[ge4],位[wei4]"). */
@@ -169,5 +186,5 @@
     copy: '<svg viewBox="0 0 20 20" aria-hidden="true"><rect x="6.75" y="6.75" width="9.5" height="10.5" rx="2" fill="none" stroke="currentColor" stroke-width="1.4"/><path d="M13.25 4.5v-.25a1.5 1.5 0 0 0-1.5-1.5h-6.5a1.5 1.5 0 0 0-1.5 1.5v8a1.5 1.5 0 0 0 1.5 1.5h.25" fill="none" stroke="currentColor" stroke-width="1.4"/></svg>',
   };
 
-  root.UI = { h, T, EASE, setSlow, pinyinNode, sylText, splitDefs, defNode, speak, onMessage, post, clickable, ICONS };
+  root.UI = { h, T, EASE, setSlow, pinyinNode, jyutNode, toneClass, sylText, splitDefs, defNode, speak, onMessage, post, clickable, ICONS };
 })(window);

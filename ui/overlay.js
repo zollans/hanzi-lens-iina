@@ -12,7 +12,7 @@
   const $arrow = document.getElementById("card-arrow");
 
   const S = {
-    settings: { enabled: true, pinyin: true, zhuyin: false, toneColors: false, blurTranslation: false },
+    settings: { enabled: true, pinyin: true, zhuyin: false, jyutping: false, toneColors: false, blurTranslation: false },
     style: null,
     line: null,          // {id, text}
     tokens: [],          // [{text, han, known, el, lineText, pos}]
@@ -32,6 +32,7 @@
     document.body.classList.toggle("tones", s.toneColors === true);
     document.body.classList.toggle("shapes", s.toneShapes !== false);
     document.body.classList.toggle("zhuyin", !!s.zhuyin);
+    document.body.classList.toggle("jyutping", !!s.jyutping);
     document.body.classList.toggle("blur-tr", !!s.blurTranslation);
     document.body.classList.toggle("no-tr", s.translate === false);
     document.body.classList.toggle("off", s.enabled === false || !S.visible);
@@ -216,7 +217,12 @@
     for (const lineText of line.text.split("\n")) {
       const row = h("span", { class: "line" });
       const toks = HL.segment(lineText);
+      // Jyutping is read for the whole line at once, so each character gets its reading in context.
+      const jyLine = ruby && S.settings.jyutping ? HL.jyutLine(lineText) : null;
+      let cp = 0;   // code-point offset of the current token in the line
       for (const t of toks) {
+        const tcp = cp;
+        cp += Array.from(t.text).length;
         const idx = S.tokens.length;
         const tok = { text: t.text, han: t.han, known: t.known, pos: t.start, lineText };
         const canLook = t.han && (t.known || Array.from(t.text).some((c) => HL.charInfo(c).ud || HL.charInfo(c).md));
@@ -224,11 +230,15 @@
         if (t.han) {
           el = h("span", { class: "w" + (canLook ? "" : " plain"), dataset: { i: idx } });
           // Reading aids over the line are lower-case (CC-CEDICT capitalises names and weekdays).
-          const reading = ruby && t.known ? HL.bestReading(t.text).toLowerCase() : "";
-          const syls = reading ? sandhi(t.text, HL.syllables(reading), toks, toks.indexOf(t)) : [];
+          // Jyutping covers every Han character (written-Cantonese words read character by character).
+          const jy = !!S.settings.jyutping;
+          const reading = !ruby ? "" : jy ? jyLine.slice(tcp, tcp + Array.from(t.text).length).join(" ").trim()
+            : t.known ? HL.bestReading(t.text).toLowerCase() : "";
+          const syls = !reading ? [] : jy ? HL.jyutSyllables(reading) : sandhi(t.text, HL.syllables(reading), toks, toks.indexOf(t));
+          if (jy) tok.jy = reading;   // the card shows the reading the word has in this line
           const chars = Array.from(t.text);
           if (ruby && syls.length === chars.length) {
-            chars.forEach((c, i) => el.appendChild(h("ruby", null, c, h("rt", { class: "t" + syls[i].tone }, UI.sylText(syls[i], S.settings.zhuyin)))));
+            chars.forEach((c, i) => el.appendChild(h("ruby", null, c, h("rt", { class: UI.toneClass(syls[i]) }, UI.sylText(syls[i], S.settings.zhuyin)))));
           } else if (ruby && syls.length) {
             el.appendChild(h("ruby", null, t.text, h("rt", { class: "t0" }, syls.map((s) => UI.sylText(s, S.settings.zhuyin)).join(" "))));
           } else if (ruby) {
@@ -362,6 +372,12 @@
 
   function pyOpts() { return { colors: S.settings.toneColors === true, zhuyin: false }; }
 
+  /** Jyutping the selected word was given in its line (context-dependent, e.g. 會 wui2 in 開會, wui5 "will"). */
+  function lineJyut(word) {
+    const t = S.tokens[S.sel];
+    return t && t.text === word ? t.jy : "";
+  }
+
   function buildCard(word) {
     const entries = groupEntries(HL.lookup(word));
     const frag = document.createDocumentFragment();
@@ -377,7 +393,8 @@
       const info = HL.charInfo(word);
       const box = h("div", { class: "empty" },
         h("div", { class: "hw", lang: isTrad ? "zh-Hant" : "zh-Hans" }, word),
-        info.um ? h("div", { class: "pyline" }, h("span", { class: "py" }, info.um)) : null,
+        S.settings.jyutping && info.uc ? h("div", { class: "pyline" }, UI.jyutNode(info.uc.split(" ")[0], pyOpts()))
+          : info.um ? h("div", { class: "pyline" }, h("span", { class: "py" }, info.um)) : null,
         h("ul", { class: "defs single" }, h("li", null, info.md || info.ud || "No dictionary entry")));
       frag.appendChild(box);
       return frag;
@@ -395,8 +412,11 @@
       first.hsk ? h("span", { class: "badge hsk", title: "HSK 3.0 level" }, "HSK " + (first.hsk >= 7 ? "7–9" : first.hsk)) : null,
       !first.hsk && first.hskOld ? h("span", { class: "badge", title: "HSK 2.0 level" }, "HSK " + first.hskOld) : null);
 
-    const pyl = h("div", { class: "pyline" }, UI.pinyinNode(first.pinyin, Object.assign(pyOpts(), { shapes: S.settings.toneShapes !== false })));
-    if (S.settings.zhuyin) pyl.appendChild(h("span", { class: "zy" }, HL.syllables(first.pinyin).map((s) => HL.syllableToZhuyin(s.raw)).join(" ")));
+    // Jyutping mode leads with the Cantonese reading; pinyin follows, smaller.
+    const pyl = S.settings.jyutping
+      ? h("div", { class: "pyline" }, UI.jyutNode(lineJyut(word) || HL.jyutReading(word), pyOpts()), h("span", { class: "zy" }, HL.marked(first.pinyin)))
+      : h("div", { class: "pyline" }, UI.pinyinNode(first.pinyin, Object.assign(pyOpts(), { shapes: S.settings.toneShapes !== false })));
+    if (S.settings.zhuyin && !S.settings.jyutping) pyl.appendChild(h("span", { class: "zy" }, HL.syllables(first.pinyin).map((s) => HL.syllableToZhuyin(s.raw)).join(" ")));
     if (badges.childNodes.length) pyl.appendChild(badges);
 
     frag.appendChild(h("div", { class: "hd" },
@@ -466,7 +486,7 @@
 
   function speakWord(word, btn) {
     const isTrad = HL.scriptOf(word) === "zh-Hant";
-    if (UI.speak(word, isTrad ? "zh-TW" : "zh-CN") && btn) {
+    if (UI.speak(word, S.settings.jyutping ? "zh-HK" : isTrad ? "zh-TW" : "zh-CN") && btn) {
       btn.classList.add("speaking");
       setTimeout(() => btn.classList.remove("speaking"), 900);
     }
@@ -754,7 +774,7 @@
 
   // ------------------------------------------------------------------ messages
   UI.onMessage("settings", (s) => {
-    const rerender = S.line && (s.pinyin !== S.settings.pinyin || s.zhuyin !== S.settings.zhuyin);
+    const rerender = S.line && (s.pinyin !== S.settings.pinyin || s.zhuyin !== S.settings.zhuyin || s.jyutping !== S.settings.jyutping);
     S.settings = Object.assign(S.settings, s);
     applySettings();
     if (rerender) {

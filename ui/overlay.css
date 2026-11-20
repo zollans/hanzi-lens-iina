@@ -158,8 +158,14 @@ body.tones .zh rt.t2 { color: var(--t2); }
 body.tones .zh rt.t3 { color: var(--t3); }
 body.tones .zh rt.t4 { color: var(--t4); }
 body.tones .zh rt.t5,
-body.tones .zh rt.t0 { color: #d4d4d8; }
+body.tones .zh rt.t0, body.tones .zh rt.j0 { color: #d4d4d8; }
+/* Cantonese (Jyutping) has six tones: the four Mandarin hues, then orange and teal. */
+body.tones .zh rt.j1 { color: var(--t1); } body.tones .zh rt.j2 { color: var(--t2); }
+body.tones .zh rt.j3 { color: var(--t3); } body.tones .zh rt.j4 { color: var(--t4); }
+body.tones .zh rt.j5 { color: #ffb35c; } body.tones .zh rt.j6 { color: #4fd1c5; }
 body.zhuyin .zh rt { font-family: "PingFang TC", sans-serif; font-weight: 500; letter-spacing: 0; }
+/* Jyutping syllables run longer than pinyin (gaai2, gwong2): a little room so neighbours don't touch. */
+body.jyutping .zh rt { font-stretch: 88%; padding: 0 0.14em; }
 
 .tr {
   position: absolute;
@@ -291,6 +297,8 @@ body.blur-tr .tr.shown:not(.revealed) { filter: blur(0.32em); cursor: pointer; }
 .py .t1 { color: var(--t1); } .py .t2 { color: var(--t2); }
 .py .t3 { color: var(--t3); } .py .t4 { color: var(--t4); }
 .py .t5, .py .t0 { color: var(--t5); }
+.py .j1 { color: var(--t1); } .py .j2 { color: var(--t2); } .py .j3 { color: var(--t3); }
+.py .j4 { color: var(--t4); } .py .j5 { color: #ffb35c; } .py .j6 { color: #4fd1c5; } .py .j0 { color: var(--t5); }
 .py.nocolor span { color: inherit !important; }
 
 /* Tone shapes: a pitch contour in a small frame after each syllable (high at the top, low at the

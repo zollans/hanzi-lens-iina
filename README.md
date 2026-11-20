@@ -4,7 +4,7 @@ Interactive Chinese subtitles for [IINA](https://iina.io), the macOS video playe
 
 ![Hanzi Lens: pinyin over the subtitle, a word card, then playback resumes](docs/demo.gif)
 
-- **Pinyin over every character**, with tone marks and optional tone-contour shapes (readable without relying on colour).
+- **Pinyin over every character**, with tone marks and optional tone-contour shapes (readable without relying on colour). Zhuyin, or **Jyutping** for Cantonese, instead if you prefer: Jyutping is read in context with CanCLID's [to-jyutping](https://github.com/CanCLID/to-jyutping), so 係咪, 喺度 and 會 get the right readings, and written-Cantonese words work too.
 - **Click any word** for a dictionary card: readings, definitions, HSK level and the characters inside it. Playback pauses while the card is open. Arrow keys move between words.
 - **English line under the Chinese.** If the file has an English subtitle track it is used as-is; otherwise the line is translated on the Mac with Apple's Translation framework.
 - **Sidebar dictionary**: full entries with stroke order, components, example sentences, a transcript that seeks the video, and starred words you can export as a flashcard file.

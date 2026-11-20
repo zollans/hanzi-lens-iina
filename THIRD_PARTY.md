@@ -12,6 +12,7 @@ The MIT licence in `LICENSE` covers the plugin's code only. The files in `ui/dat
 | Character decomposition and etymology | [Make Me a Hanzi](https://github.com/skishore/makemeahanzi) `dictionary.txt` | LGPL-3.0-or-later (`licenses/LGPL-3.0.txt`, `licenses/MAKE-ME-A-HANZI-COPYING.txt`) | `ui/data/chars.js` |
 | Stroke geometry | [hanzi-writer-data](https://github.com/chanind/hanzi-writer-data), from Make Me a Hanzi and the Arphic fonts | Arphic Public License (`licenses/ARPHIC-PL.txt`) | `ui/strokes/*.js` |
 | Example sentences | [Tatoeba](https://tatoeba.org) | [CC BY 2.0 FR](https://creativecommons.org/licenses/by/2.0/fr/) | `ui/data/examples.js` |
+| Jyutping in context (code and its built-in pronunciation data) | [to-jyutping](https://github.com/CanCLID/to-jyutping) 3.1.1 by CanCLID, unmodified | BSD-2-Clause (`licenses/TO-JYUTPING-LICENSE.txt`) | `ui/lib/to-jyutping.js` |
 
 The data files are modified from the originals: fields are selected, merged and re-encoded into compact JavaScript bundles. Because CC-CEDICT and CC-Canto are share-alike, `ui/data/words.js` and `ui/data/chars.js` are distributed under CC BY-SA 4.0.
 

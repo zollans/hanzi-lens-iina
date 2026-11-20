@@ -413,6 +413,69 @@
       .map(([, ex]) => ({ zh: ex[0], en: ex[1] }));
   }
 
+  // ------------------------------------------------------------------ Cantonese (Jyutping)
+  /** Jyutping for every character of a line (one entry per code point, "" where there is none).
+   *  CanCLID's ToJyutping reads characters in context (係咪 mai6, 喺度 dou6, 會 wui5/wui2); any character it
+   *  leaves out falls back to the bundled CC-Canto / Unihan readings. */
+  function jyutLine(text) {
+    const chars = Array.from(text);
+    let out = null;
+    try {
+      if (root.ToJyutping) {
+        // ToJyutping is built on traditional characters; simplified text reads better converted first (种 → 種).
+        const src = scriptOf(text) === "zh-Hans" ? toTraditional(text) : text;
+        const list = root.ToJyutping.getJyutpingList(src);
+        if (list.length === chars.length) out = list.map((x) => x[1] || "");
+      }
+    } catch (e) { out = null; }
+    if (!out) out = chars.map(() => "");
+    return out.map((r, i) => r || (isHan(chars[i]) ? dictJyut(chars[i]) : ""));
+  }
+
+  /** Word-by-word simplified → traditional through CC-CEDICT's pairs; keeps one character per character. */
+  function toTraditional(text) {
+    return segment(text).map((t) => {
+      if (!t.han || !t.known) return t.text;
+      const e = lookup(t.text).find((x) => x.simp === t.text);
+      return e && Array.from(e.trad).length === Array.from(t.text).length ? e.trad : t.text;
+    }).join("");
+  }
+
+  /** Jyutping for a word: in context from ToJyutping, else from the bundled data (dictJyut). */
+  function jyutReading(word) {
+    return jyutLine(word).filter(Boolean).join(" ");
+  }
+
+  /** Bundled data only: CC-Canto's reading of the best dictionary entry when it covers every character,
+   *  otherwise character by character (the character's own CC-Canto entry, then Unihan's Cantonese reading). */
+  function dictJyut(word) {
+    load();
+    const chars = Array.from(word);
+    const best = (w) => {
+      const ids = index.get(w);
+      if (!ids) return "";
+      const i = ids.slice().sort((a, b) => entryScore(b, w) - entryScore(a, w)).find((k) => W.j[k]);
+      return i === undefined ? "" : W.j[i];
+    };
+    const whole = best(word);
+    if (whole && whole.trim().split(/\s+/).length === chars.length) return whole.trim();
+    return chars.map((c) => {
+      if (!isHan(c)) return c;
+      const own = best(c).trim().split(/\s+/)[0];
+      if (own) return own;
+      const uc = root.HL_CHARS && root.HL_CHARS[c] && root.HL_CHARS[c].uc;
+      return uc ? uc.split(" ")[0] : "";
+    }).join(" ").trim();
+  }
+
+  /** "ngo5 dei6" -> [{text:"ngo5", tone:5, raw:"ngo5"}, ...] (tones 1–6) */
+  function jyutSyllables(s) {
+    return (s || "").split(/\s+/).filter(Boolean).map((x) => {
+      const m = /^[a-z]+([1-6])$/.exec(x);
+      return { text: x, tone: m ? parseInt(m[1], 10) : 0, raw: x, jyut: true };
+    });
+  }
+
   /** Best single reading for a token (used for subtitle ruby). */
   function bestReading(word) {
     const e = lookup(word);
@@ -443,7 +506,7 @@
   }
 
   root.HL = {
-    load, lookup, has, segment, prefixesAt, search, charInfo, compounds, examplesFor, bestReading,
+    load, lookup, has, segment, prefixesAt, search, charInfo, compounds, examplesFor, bestReading, jyutReading, jyutLine, jyutSyllables,
     scriptOf, isHan, syllables, marked, toneless, syllableToZhuyin, entryScore,
   };
 })(window);

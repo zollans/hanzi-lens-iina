@@ -221,6 +221,8 @@ main { position: relative; flex: 1; min-height: 0; }
 
 .py .t1 { color: var(--t1); } .py .t2 { color: var(--t2); } .py .t3 { color: var(--t3); }
 .py .t4 { color: var(--t4); } .py .t5, .py .t0 { color: var(--t5); }
+.py .j1 { color: var(--t1); } .py .j2 { color: var(--t2); } .py .j3 { color: var(--t3); }
+.py .j4 { color: var(--t4); } .py .j5 { color: #e8890c; } .py .j6 { color: #0f9e8e; } .py .j0 { color: var(--t5); }
 .py.nocolor span { color: inherit !important; }
 
 /* Tone shapes: a pitch contour in a small frame after each syllable (high at the top, low at the

@@ -15,7 +15,7 @@
   $("open-settings").innerHTML = ICONS.gear;
 
   const S = {
-    settings: { toneColors: false, zhuyin: false },
+    settings: { toneColors: false, zhuyin: false, jyutping: false },
     tab: "dict",
     lastTab: "dict",
     hist: [],
@@ -145,7 +145,7 @@
     const b = h("button", { class: "ib", title: "Speak", "aria-label": "Speak", html: ICONS.speaker });
     b.addEventListener("click", (e) => {
       e.stopPropagation();
-      if (UI.speak(text, langOf(text) === "zh-Hant" ? "zh-TW" : "zh-CN")) {
+      if (UI.speak(text, S.settings.jyutping ? "zh-HK" : langOf(text) === "zh-Hant" ? "zh-TW" : "zh-CN")) {
         b.classList.add("speaking");
         setTimeout(() => b.classList.remove("speaking"), 1000);
       }
@@ -230,7 +230,9 @@
     {
       sub.appendChild(h("span", null, h("span", { class: "k" }, "Zhuyin"), h("span", { class: "zy" }, HL.syllables(first.pinyin).map((s) => HL.syllableToZhuyin(s.raw)).join(" "))));
     }
-    if (first.jyutping) sub.appendChild(h("span", null, h("span", { class: "k" }, "Cantonese"), first.jyutping));
+    // Cantonese: CC-Canto's reading, or character by character for words it doesn't list.
+    const jy = HL.jyutReading(word);
+    if (jy) sub.appendChild(h("span", null, h("span", { class: "k" }, "Jyutping"), UI.jyutNode(jy, pyOpts())));
 
     const badges = h("div", { class: "badges" });
     if (first.hsk) badges.appendChild(h("span", { class: "badge strong", title: "HSK 3.0 (2021) level" }, "HSK 3.0 · " + (first.hsk >= 7 ? "7–9" : first.hsk)));
@@ -604,6 +606,7 @@
     ["Reading aids", [
       ["pinyin", "Pinyin above characters", null, "⌥⌘P"],
       ["zhuyin", "Zhuyin instead of pinyin", "Bopomofo, as used in Taiwan."],
+      ["jyutping", "Jyutping (Cantonese) instead of pinyin", "Cantonese readings over the line and first in word cards. Words the dictionary doesn’t list read character by character."],
       ["toneShapes", "Tone shapes", "A small pitch contour beside each syllable in word cards. Works without color."],
       ["toneColors", "Tone colors", "Red, green, blue and purple by tone. Hard to tell apart with color-vision deficiency."],
     ]],
@@ -669,7 +672,7 @@
 
   // ------------------------------------------------------------------ messages
   UI.onMessage("settings", (s) => {
-    const changed = s.toneColors !== S.settings.toneColors || s.toneShapes !== S.settings.toneShapes || s.zhuyin !== S.settings.zhuyin;
+    const changed = s.toneColors !== S.settings.toneColors || s.toneShapes !== S.settings.toneShapes || s.zhuyin !== S.settings.zhuyin || s.jyutping !== S.settings.jyutping;
     S.settings = Object.assign(S.settings, s);
     if (s.debugSlow) UI.setSlow(s.debugSlow);
     if (changed && S.hpos >= 0) render(S.hist[S.hpos]);
